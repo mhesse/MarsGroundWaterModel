@@ -61,14 +61,14 @@ hD_d = h_d/hc;  % Dichotomy
 Grid.xmin = 0; Grid.xmax = pi;    Grid.Nx = 25*6; %20;
 Grid.ymin = 0; Grid.ymax = 2*pi;  Grid.Ny = 50*6; %50;
 Grid = build_grid(Grid);
-[Dref,Gref,I] = build_ops(Grid); % cartesian ops for complex domain comps
+[Dref,Gref,C,I,M] = build_ops(Grid); % cartesian ops for complex domain comps
 
 Grid.geom = 'spherical_shell_theta_phi';
 Grid.R_shell = 1;
 Grid = build_grid(Grid);
 [Xc,Yc] = meshgrid(Grid.xc,Grid.yc);
 % Linear Operators
-[D,G,I] = build_ops(Grid);
+[D,G,C,I,M] = build_ops(Grid);
 L = -D*G;
 fs = Pi*ones(Grid.N,1);
 
