@@ -1,20 +1,19 @@
 % file: HomogeneousUniformRecharge2D.m
 % author: Marc Hesse
 % date: Dec 28, 2021
-
 clc, clear, close all
 
 sim_type.heterogeneity_vertical = 'power_law';
 % Aquifer constants
-const.aq.dmax  = 10e3; % [m] max. aquifer depth
-const.aq.m_exp = 2.5;  % [-] exponent in porosity power-law with height
-const.aq.r_exp = 3;    % [-] exponent in porosity-hyd. cond. power-law 
+const.aq.dmax  = 10e3;   % [m] max. aquifer depth
+const.aq.m_exp = 2.5;    % [-] exponent in porosity power-law with height
+const.aq.r_exp = 3;      % [-] exponent in porosity-hyd. cond. power-law 
 const.aq.phi_ref = 0.3;  % [-] reference porosity for K(phi) power-law
 const.aq.K_ref   = 1e-6; % [m/s] reference conductivity for K(phi) power-law
-const.aq.phi_s = 0.5; % [-] actual surface porosity
+const.aq.phi_s = 0.5;    % [-] actual surface porosity
 
 %% Recharge
-r_m_yr = 5e-6;                 % recharge in m/Earth year
+r_m_yr = 5e-6;    % 5e-6             % recharge in m/Earth year
 % Rest of the constants
 const = mars_constants(const);
 r_m_s = r_m_yr/const.gen.yr2s; % recharge in m/s
@@ -32,40 +31,47 @@ hc = const.sea.Deuteronilus.z;
 xc = const.gen.R;
 Pi = r_m_s*xc^2/(K*hc^2)
 
-%% Geometry
-topo_contours.dichotomy.z = const.sea.Arabia.elev;
-topo_contours.hellas.z = -3100; 
-topo_contours.hellas.z = -5800; %
-% topo_contours.argyre.z = -2500;
-% topo_contours.hellas.z = const.sea.Arabia.elev; %
-topo_contours.argyre.z = const.sea.Arabia.elev;
+%% Load topography and precomputed contours
 load ../MarsTopoProcessing/Mars_topography.mat
 load ../MarsTopoProcessing/hellas_topo.mat
 load ../MarsTopoProcessing/argyre_topo.mat
 load ../MarsTopoProcessing/dichotomy_topo.mat
 disp 'Topo data loaded.'
 
+%% Geometry
+topo_contours.dichotomy.z = const.sea.Arabia.elev;
+% topo_contours.dichotomy.z = const.sea.Deuteronilus.elev;
+% topo_contours.dichotomy.z = const.sea.Meridiani.elev;
+% topo_contours.hellas.z = -3100; 
+topo_contours.hellas.z = -5800; %
+% topo_contours.hellas.z = hellas.set.elevations(end-10)
+topo_contours.argyre.z = -2500;
+% topo_contours.argyre.z = argyre.set.elevations(end-10)
+% topo_contours.hellas.z = const.sea.Arabia.elev; %
+% topo_contours.argyre.z = const.sea.Arabia.elev;
+
 topo_contours = get_topo_contours(topo_contours,theta,phi,mars_topo,dichotomy,hellas,argyre);
 
 %% Dimless boundary conditions
-h_d = topo_contours.dichotomy.z - (-const.aq.dmax);
-h_h = topo_contours.hellas.z - (-const.aq.dmax);
-h_a = topo_contours.argyre.z - (-const.aq.dmax);
-hc = h_d;
-hD_d = h_d/hc;  % Dichotomy
-hD_h = h_h/hc; % Hellas
-hD_a = h_a/hc; % Argyre
+topo_contours.dichotomy.h = topo_contours.dichotomy.z - (-const.aq.dmax);
+topo_contours.hellas.h = topo_contours.hellas.z - (-const.aq.dmax);
+topo_contours.argyre.h = topo_contours.argyre.z - (-const.aq.dmax);
+hc = topo_contours.dichotomy.h;
+topo_contours.dichotomy.hD = topo_contours.dichotomy.h/hc; % Dichotomy
+topo_contours.hellas.hD    = topo_contours.hellas.h/hc; % Hellas
+topo_contours.argyre.hD    = topo_contours.argyre.h/hc; % Argyre
 
 %% Grid and ops
 Grid.xmin = 0; Grid.xmax = pi;    Grid.Nx = 25*6; %20;
 Grid.ymin = 0; Grid.ymax = 2*pi;  Grid.Ny = 50*6; %50;
 Grid = build_grid(Grid);
-[Dref,Gref,C,I,M] = build_ops(Grid); % cartesian ops for complex domain comps
+Dref = build_ops(Grid); % cartesian ops for complex domain comps
 
 Grid.geom = 'spherical_shell_theta_phi';
 Grid.R_shell = 1;
 Grid = build_grid(Grid);
 [Xc,Yc] = meshgrid(Grid.xc,Grid.yc);
+
 % Linear Operators
 [D,G,C,I,M] = build_ops(Grid);
 L = -D*G;
@@ -83,7 +89,7 @@ M = [Mx;My];                                            % 2D mean-matrix
 % Grid geometry
 [dof,dof_f,X_f,Y_f] = get_mars_dofs(Grid,Dref,Xc,Yc,topo_contours);
 % load mars_dofs.mat
-check_feature_identification(topo_contours,dof,X_f,Y_f,Xc,Yc);
+% check_feature_identification(topo_contours,dof,X_f,Y_f,Xc,Yc);
 
 %% 2D Residual and Jacobian
 H = @(h) spdiags(M*h,0,Grid.Nf,Grid.Nf);  % diagonal matrix with hD ave on faces
@@ -100,9 +106,9 @@ BC.dof_dir = [dof.dichotomy_bnd.in;...
               dof.argyre_bnd.in;...
               dof.argyre];
 BC.dof_f_dir = zeros(size(BC.dof_dir)); % not needed
-BC.g = [hD_d*ones(size([dof.dichotomy_bnd.in;dof.lowlands]));...
-        hD_h*ones(size([dof.hellas_bnd.in;dof.hellas]));...
-        hD_a*ones(size([dof.argyre_bnd.in;dof.argyre]))];
+BC.g = [topo_contours.dichotomy.hD*ones(size([dof.dichotomy_bnd.in;dof.lowlands]));...
+        topo_contours.hellas.hD*ones(size([dof.hellas_bnd.in;dof.hellas]));...
+        topo_contours.argyre.hD*ones(size([dof.argyre_bnd.in;dof.argyre]))];
 BC.dof_neu = [];
 BC.dof_f_neu = [];
 BC.qb = [];
@@ -122,14 +128,20 @@ plot(topo_contours.argyre.topo.theta,topo_contours.argyre.topo.phi,'k-','linewid
 axis equal
 xlim([0 pi]), ylim([0 2*pi])
 colorbar
-subplot 122
-h = contourf(Xc,Yc,reshape(fs,Grid.Ny,Grid.Nx),30,'LineColor','none'); hold on
-plot(topo_contours.dichotomy.topo.theta,topo_contours.dichotomy.topo.phi,'k-','linewidth',2), hold on
-plot(topo_contours.hellas.topo.theta,topo_contours.hellas.topo.phi,'k-','linewidth',2)
-plot(topo_contours.argyre.topo.theta,topo_contours.argyre.topo.phi,'k-','linewidth',2)
-axis equal
-xlim([0 pi]), ylim([0 2*pi])
-colorbar
+
+if std(fs)>1e-10 % only if fs is not constant
+    subplot 122
+    h = contourf(Xc,Yc,reshape(fs,Grid.Ny,Grid.Nx),30,'LineColor','none'); hold on
+    plot(topo_contours.dichotomy.topo.theta,topo_contours.dichotomy.topo.phi,'k-','linewidth',2), hold on
+    plot(topo_contours.hellas.topo.theta,topo_contours.hellas.topo.phi,'k-','linewidth',2)
+    plot(topo_contours.argyre.topo.theta,topo_contours.argyre.topo.phi,'k-','linewidth',2)
+    axis equal
+    xlim([0 pi]), ylim([0 2*pi])
+    colorbar
+end
+
+% %% Compute the target zones for drainage basins
+target_zones = comp_target_zones(Xc,Yc,Grid,D,G,M,B,BC,N,topo_contours,dof,const,hellas,argyre);
 
 %% Newton iteration
 fprintf('\nNewton iteration for Dupuit-Boussinesq:\n')
@@ -155,11 +167,23 @@ end
 % matrix shape for plotting
 hDm = reshape(hD,Grid.Ny,Grid.Nx);
 hm = (hDm*hc-const.aq.dmax)/1e3;
-q = -G*hD;
-[Vx_c,Vy_c] = comp_cell_center_velocity(q,Xc,Yc,Grid);
-S = stream2(Xc,Yc,Vx_c,Vy_c,Xc(dof.active),Yc(dof.active));
+fprintf('Head has been determined.\n\n')
+
+%% Compute fluxes and streamlines
+qD = comp_flux_shell(G,1,hD,Grid);
+[Vx_c,Vy_c] = comp_cell_center_velocity(qD,Xc,Yc,Grid);
+
+
+% Compute streamlines on extended domain (periodicity)
+[Xc_ext,Yc_ext,Vx_ext] = extend_field_spherical(Xc,Yc,Vx_c,Grid);
+[Xc_ext,Yc_ext,Vy_ext] = extend_field_spherical(Xc,Yc,Vy_c,Grid);
+fprintf('Computing streamlines\n\n')
+S = stream2(Xc_ext,Yc_ext,Vx_ext,Vy_ext,Xc(dof.active),Yc(dof.active));
 Ns = length(S);
-save('flow_field_with_crater_5800.mat','Xc','Yc','Vx_c','Vy_c','dof','dof_f','X_f','Y_f','S','Ns','topo_contours','Grid','hD','hDm','hm','fs')
+
+
+fprintf('Saving fields.\n')
+save('flow_field.mat','Xc','Yc','qD','Vx_c','Vy_c','dof','dof_f','X_f','Y_f','S','Ns','topo_contours','Grid','hD','hDm','hm','fs','target_zones','Xc_ext','Yc_ext','Vx_ext','Vy_ext')
 
 %%
 figure('name','Steady Dupuit-Boussinesq','position',[10 10 1.25*800 1.25*800 ])
@@ -168,12 +192,12 @@ contourf(rad2deg(Xc),rad2deg(Yc),hDm,50,'LineColor','none'); hold on
 plot(rad2deg(topo_contours.dichotomy.topo.theta),rad2deg(topo_contours.dichotomy.topo.phi),'k-','linewidth',2), hold on
 plot(rad2deg(topo_contours.hellas.topo.theta),rad2deg(topo_contours.hellas.topo.phi),'k-','linewidth',2)
 plot(rad2deg(topo_contours.argyre.topo.theta),rad2deg(topo_contours.argyre.topo.phi),'k-','linewidth',2)
-
+% plot(rad2deg(X_faces),rad2deg(Y_faces),'m-')
 colorbar('location','northoutside')
 axis equal
 xlim([0 180]), ylim([0 360])
 
-title 'dimensionless.'
+title 'dimensionless'
 
 subplot 122
 contourf(rad2deg(Xc),rad2deg(Yc),hm,50,'LineColor','none'); hold on
@@ -186,3 +210,16 @@ axis equal
 xlim([0 180]), ylim([0 360])
 
 title 'dimensional'
+
+%%
+figure('position',[10 10 1.25*500 1.25*500 ])
+plot_spherical_shell(hD,.1,Grid,topo_contours)
+view(90,-10)
+set(gcf, 'InvertHardCopy', 'off'); 
+% set(gcf,'Color',[0 0 0]);
+set(gca,'xtick',[],'ytick',[],'ztick',[],'XColor','w','YColor','w','ZColor','w')
+set(gca,'Color',[1 1 1]);
+grid off
+axis tight
+
+saveas(gcf,'WaterOnSphere.png');
