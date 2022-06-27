@@ -11,8 +11,11 @@ topo_contours.highlands.z = topo_contours.dichotomy.z;
 
 %% Hellas contour
 topo_contours.hellas.topo = comp_crater_contours(topo_contours.hellas.z,theta,phi,mars_topo,hellas);
+% topo_contours.hellas = comp_crater_contours(topo_contours.hellas.z,theta,phi,mars_topo,hellas);
+
 
 %% Argyre contour
 topo_contours.argyre.topo = comp_crater_contours(topo_contours.argyre.z,theta,phi,mars_topo,argyre);
+% topo_contours.argyre = comp_crater_contours(topo_contours.argyre.z,theta,phi,mars_topo,argyre);
 
 
