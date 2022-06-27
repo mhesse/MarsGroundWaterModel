@@ -30,10 +30,10 @@ k = K*const.gen.mu/(const.gen.gMars*const.gen.rho);
 
 %% Geometry
 % (this should be the only place where shoreline is set!)
-topo_contours.dichotomy.z = const.sea.Arabia.elev;
-% topo_contours.hellas.z = -3100; 
-% topo_contours.hellas.z = -5800; %
-% topo_contours.argyre.z = 0; %-2500;
+% topo_contours.dichotomy.z = const.sea.Deuteronilus.elev;
+% topo_contours.dichotomy.z = const.sea.Arabia.elev;
+topo_contours.dichotomy.z = const.sea.Meridiani.elev;
+
 load ../MarsTopoProcessing/Mars_topography.mat
 load ../MarsTopoProcessing/hellas_topo.mat
 load ../MarsTopoProcessing/argyre_topo.mat
