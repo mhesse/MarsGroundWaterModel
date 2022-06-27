@@ -190,7 +190,7 @@ S = stream2(Xc,Yc,Vx_c,Vy_c,Xc(dof.active),Yc(dof.active));
 Ns = length(S);
 
 fprintf('Saving fields.\n')
-save('flow_field_no_crater.mat','Xc','Yc','Vx_c','Vy_c','dof','dof_f','X_f','Y_f','S','Ns','topo_contours','Grid','hD','hDm','hm','fs')
+save('flow_field_no_crater.mat','Xc','Yc','Vx_c','Vy_c','dof','dof_f','X_f','Y_f','S','Ns','topo_contours','Grid','hD','hDm','hm','zm','fs')
 
 %%
 figure('name','Steady Dupuit-Boussinesq','position',[10 10 1.25*800 1.25*800 ])

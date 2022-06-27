@@ -1,4 +1,4 @@
-% file: HomogeneousUniformRecharge2D.m
+% file: Mars_Steady_Dupuit.m
 % author: Marc Hesse
 % date: Dec 28, 2021
 clc, clear, close all
@@ -95,14 +95,13 @@ M = [Mx;My];                                            % 2D mean-matrix
 load mars_dofs.mat
 % check_feature_identification(topo_contours,dof,X_f,Y_f,Xc,Yc);
 
-%% Plot coss-section
-plot(topo1d.theta_deg,topo1d.topo_mean/1e3,'color',.7*[1 1 1],'linewidth',1.5), hold on
-plot([0 180],const.aq.z_bot*[1 1],'k-')
-plot(const.sea.Arabia.theta_bnd_deg,const.sea.Arabia.elev/1e3,'ro')
-% topo_contours.dichotomy.z
-ylabel('elevation: z [km]')
-ylim([-10 5])
-
+% %% Plot coss-section
+% plot(topo1d.theta_deg,topo1d.topo_mean/1e3,'color',.7*[1 1 1],'linewidth',1.5), hold on
+% plot([0 180],const.aq.z_bot*[1 1],'k-')
+% plot(const.sea.Arabia.theta_bnd_deg,const.sea.Arabia.elev/1e3,'ro')
+% % topo_contours.dichotomy.z
+% ylabel('elevation: z [km]')
+% ylim([-10 5])
 
 
 %% 2D Residual and Jacobian
@@ -197,7 +196,7 @@ S = stream2(Xc_ext,Yc_ext,Vx_ext,Vy_ext,Xc(dof.active),Yc(dof.active));
 Ns = length(S);
 
 fprintf('Saving fields.\n')
-save('flow_field.mat','Xc','Yc','qD','Vx_c','Vy_c','dof','dof_f','X_f','Y_f','S','Ns','topo_contours','Grid','hD','hDm','hm','fs','target_zones','Xc_ext','Yc_ext','Vx_ext','Vy_ext')
+save('flow_field.mat','Xc','Yc','qD','Vx_c','Vy_c','dof','dof_f','X_f','Y_f','S','Ns','topo_contours','Grid','hD','hDm','hm','zm','fs','target_zones','Xc_ext','Yc_ext','Vx_ext','Vy_ext')
 
 %%
 figure('name','Steady Dupuit-Boussinesq','position',[10 10 1.25*800 1.25*800 ])
