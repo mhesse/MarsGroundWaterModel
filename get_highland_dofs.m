@@ -1,4 +1,4 @@
-function [dof,dof_f,X_f,Y_f] = get_highland_dofs(Grid,D,Xc,Yc,topo_contours)  % repo
+function [dof,dof_f,X_f,Y_f] = get_highland_dofs(Grid,D,Xc,Yc,topo_contours) % check this
 % author: Marc Hesse
 % date: Dec 8, 2021
 % description: Determines the degree of fredom arrays for cells and faces 
@@ -19,7 +19,7 @@ dof_f.inactive = find_faces(dof.inactive,D,Grid);
 
 % Active domain
 % Subtract Hellas and Argyre from the Highlands
-dof.active = dof.highlands
+dof.active = dof.highlands;
 dof_f.active = find_faces(dof.active,D,Grid);
 [X_f.active,Y_f.active] = comp_face_coords(dof_f.active,Grid);
 
