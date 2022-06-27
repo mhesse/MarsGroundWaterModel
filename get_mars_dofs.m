@@ -3,17 +3,21 @@ function [dof,dof_f,X_f,Y_f] = get_mars_dofs(Grid,D,Xc,Yc,topo_contours)
 % date: Dec 8, 2021
 % description: Determines the degree of fredom arrays for cells and faces 
 % of the various domains on Mars that are needed in the computations.
-disp 'Determining the dofs of each feature'
+fprintf('\nDetermining the dofs of each feature: ')
 % Hellas
+fprintf('Hellas, ')
 [dof.hellas,dof_f.hellas,X_f.hellas,Y_f.hellas] = get_feature_dofs(Grid,D,Xc,Yc,topo_contours.hellas.topo);
 
 % Argyre
+fprintf('Argyre, ')
 [dof.argyre,dof_f.argyre,X_f.argyre,Y_f.argyre] = get_feature_dofs(Grid,D,Xc,Yc,topo_contours.argyre.topo);
 
 % Lowlands
+fprintf('Lowlands, ')
 [dof.lowlands,dof_f.lowlands,X_f.lowlands,Y_f.lowlands] = get_feature_dofs(Grid,D,Xc,Yc,topo_contours.lowlands);
 
 % Highlands
+fprintf('Highlands.\n\n')
 [dof.highlands,dof_f.highlands,X_f.highlands,Y_f.highlands] = get_feature_dofs(Grid,D,Xc,Yc,topo_contours.highlands);
 
 % Inactive domain
