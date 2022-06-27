@@ -7,6 +7,7 @@ clc, clear, close all
 sim_type.heterogeneity_vertical = 'power_law';
 % Aquifer constants
 const.aq.dmax  = 10e3; % [m] max. aquifer depth
+const.aq.z_bot = -9e3;   % [m] elevation of the base of the aquifer
 const.aq.m_exp = 2.5;  % [-] exponent in porosity power-law with height
 const.aq.r_exp = 3;    % [-] exponent in porosity-hyd. cond. power-law 
 const.aq.phi_ref = 0.3;  % [-] reference porosity for K(phi) power-law
@@ -27,35 +28,38 @@ k = K*const.gen.mu/(const.gen.gMars*const.gen.rho);
 % Aquifer properties
 [aq_prop,const] = aquifer_properties(const,sim_type);
 
-%% Scales and dimless. params
-hc = const.sea.Deuteronilus.z;
-xc = const.gen.R;
-Pi = r_m_s*xc^2/(K*hc^2)
-
 %% Geometry
+% (this should be the only place where shoreline is set!)
 topo_contours.dichotomy.z = const.sea.Arabia.elev;
-topo_contours.hellas.z = -3100; 
-topo_contours.hellas.z = -5800; %
-topo_contours.argyre.z = 0; %-2500;
+% topo_contours.hellas.z = -3100; 
+% topo_contours.hellas.z = -5800; %
+% topo_contours.argyre.z = 0; %-2500;
 load ../MarsTopoProcessing/Mars_topography.mat
 load ../MarsTopoProcessing/hellas_topo.mat
 load ../MarsTopoProcessing/argyre_topo.mat
 load ../MarsTopoProcessing/dichotomy_topo.mat
 disp 'Topo data loaded.'
 
+%% Determine geometry of computational domain
 % topo_contours = get_topo_contours(topo_contours,theta,phi,mars_topo,dichotomy,hellas,argyre);
 [topo_contours.dichotomy.topo,topo_contours.lowlands,topo_contours.highlands] = comp_dichotomy_contours(topo_contours.dichotomy.z,theta,phi,mars_topo,dichotomy);
 topo_contours.lowlands.z = topo_contours.dichotomy.z;
 topo_contours.highlands.z = topo_contours.dichotomy.z;
 
 %% Dimless boundary conditions
-h_d = topo_contours.dichotomy.z - (-const.aq.dmax);
-% h_h = topo_contours.hellas.z - (-const.aq.dmax);
-% h_a = topo_contours.argyre.z - (-const.aq.dmax);
-hc = h_d;
-hD_d = h_d/hc;  % Dichotomy
-% hD_h = h_h/hc; % Hellas
-% hD_a = h_a/hc; % Argyre
+topo_contours.dichotomy.h = topo_contours.dichotomy.z - const.aq.z_bot;
+
+% All shorelines are scaled to the northern ocean (dichotomy)
+hc = topo_contours.dichotomy.h;
+topo_contours.dichotomy.hD = topo_contours.dichotomy.h/hc; % Dichotomy (should be 1)
+
+% h_d = topo_contours.dichotomy.z - const.aq.z_bot;
+% hc = h_d;
+% hD_d = h_d/hc;  % Dichotomy
+
+%% Dimensionless governing parameters
+xc = const.gen.R;
+Pi = r_m_s*xc^2/(K*hc^2)
 
 %% Grid and ops
 Grid.xmin = 0; Grid.xmax = pi;    Grid.Nx = 25*6; %20;
@@ -82,9 +86,7 @@ My = kron(speye(Nx),My);                                % 2D mean-matrix in y-di
 M = [Mx;My];                                            % 2D mean-matrix
 
 % Grid geometry
-% [dof,dof_f,X_f,Y_f] = get_highland_dofs(Grid,Dref,Xc,Yc,topo_contours);
-load mars_dofs.mat
-% check_feature_identification(topo_contours,dof,X_f,Y_f,Xc,Yc);
+[dof,dof_f,X_f,Y_f] = get_highland_dofs(Grid,Dref,Xc,Yc,topo_contours);
 
 % figure('position',[10 10 800 500])
 % subplot 121
@@ -127,13 +129,13 @@ Jac = @(h) D*(H(h)*G+dH(h)*M);            % Jacobian matrix
 BC.dof_dir = [dof.dichotomy_bnd.in;...
               dof.lowlands];
 BC.dof_f_dir = zeros(size(BC.dof_dir)); % not needed
-BC.g = [hD_d*ones(size([dof.dichotomy_bnd.in;dof.lowlands]))];
+BC.g = [topo_contours.dichotomy.hD*ones(size([dof.dichotomy_bnd.in;dof.lowlands]))];
 BC.dof_neu = [];
 BC.dof_f_neu = [];
 BC.qb = [];
 [B,N,fn] = build_bnd(BC,Grid,I);
 
-% Initial guess
+%% Compute initial guess for Newton iteration
 fprintf('\nSolve Poisson as initial guess:\n')
 
 hDini = solve_lbvp(L,fs+fn,B,BC.g,N);
@@ -142,8 +144,6 @@ figure('name','Initial guess','position',[10 10 1.25*800 1.25*800 ])
 subplot 121
 h = contourf(Xc,Yc,reshape(hDini,Grid.Ny,Grid.Nx)*10-9,30,'LineColor','none'); hold on
 plot(topo_contours.dichotomy.topo.theta,topo_contours.dichotomy.topo.phi,'k-','linewidth',2), hold on
-% plot(topo_contours.hellas.topo.theta,topo_contours.hellas.topo.phi,'k-','linewidth',2)
-% plot(topo_contours.argyre.topo.theta,topo_contours.argyre.topo.phi,'k-','linewidth',2)
 axis equal
 xlim([0 pi]), ylim([0 2*pi])
 colorbar
@@ -176,14 +176,20 @@ while (nres > tol || ndhD > tol) && n < nmax
     if n == 1; ndhD = 0; end % to allow exit on first iteration
     nres_Newton(n) = nres; ndhD_Newton(n) = ndhD;
 end
+fprintf('Newton converged after %d iterations.\n',n)
 
-% matrix shape for plotting
-hDm = reshape(hD,Grid.Ny,Grid.Nx);
-hm = (hDm*hc-const.aq.dmax)/1e3;
+% Matrix shape for plotting
+hDm = reshape(hD,Grid.Ny,Grid.Nx); % [-]  dimensionless head as matrix 
+hm  = hDm*hc/1e3;                  % [km] dimensional head as matrix
+zm = hm+const.aq.z_bot/1e3;        % [km] elevation of water table
+fprintf('Head has been determined.\n\n')
+
 q = -G*hD;
 [Vx_c,Vy_c] = comp_cell_center_velocity(q,Xc,Yc,Grid);
 S = stream2(Xc,Yc,Vx_c,Vy_c,Xc(dof.active),Yc(dof.active));
 Ns = length(S);
+
+fprintf('Saving fields.\n')
 save('flow_field_no_crater.mat','Xc','Yc','Vx_c','Vy_c','dof','dof_f','X_f','Y_f','S','Ns','topo_contours','Grid','hD','hDm','hm','fs')
 
 %%
@@ -191,9 +197,6 @@ figure('name','Steady Dupuit-Boussinesq','position',[10 10 1.25*800 1.25*800 ])
 subplot 121
 contourf(rad2deg(Xc),rad2deg(Yc),hDm,50,'LineColor','none'); hold on
 plot(rad2deg(topo_contours.dichotomy.topo.theta),rad2deg(topo_contours.dichotomy.topo.phi),'k-','linewidth',2), hold on
-% % plot(rad2deg(topo_contours.hellas.topo.theta),rad2deg(topo_contours.hellas.topo.phi),'k-','linewidth',2)
-% % plot(rad2deg(topo_contours.argyre.topo.theta),rad2deg(topo_contours.argyre.topo.phi),'k-','linewidth',2)
-
 colorbar('location','northoutside')
 axis equal
 xlim([0 180]), ylim([0 360])
@@ -201,11 +204,8 @@ xlim([0 180]), ylim([0 360])
 title 'dimensionless.'
 
 subplot 122
-contourf(rad2deg(Xc),rad2deg(Yc),hDm*hc/1e3-9,50,'LineColor','none'); hold on
+contourf(rad2deg(Xc),rad2deg(Yc),zm,50,'LineColor','none'); hold on
 plot(rad2deg(topo_contours.dichotomy.topo.theta),rad2deg(topo_contours.dichotomy.topo.phi),'k-','linewidth',1), hold on
-% plot(rad2deg(topo_contours.hellas.topo.theta),rad2deg(topo_contours.hellas.topo.phi),'k-','linewidth',1)
-% plot(rad2deg(topo_contours.argyre.topo.theta),rad2deg(topo_contours.argyre.topo.phi),'k-','linewidth',1)
-
 colorbar('location','northoutside')
 axis equal
 xlim([0 180]), ylim([0 360])
