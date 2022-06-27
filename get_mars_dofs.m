@@ -1,4 +1,4 @@
-function [dof,dof_f,X_f,Y_f] = get_mars_dofs(Grid,D,Xc,Yc,topo_contours)
+function [dof,dof_f,X_f,Y_f] = get_mars_dofs(Grid,D,Xc,Yc,topo_contours) % repo
 % author: Marc Hesse
 % date: Dec 8, 2021
 % description: Determines the degree of fredom arrays for cells and faces 
