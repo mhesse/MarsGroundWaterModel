@@ -22,7 +22,7 @@ const.sea.Arabia.elev = -2090;       % [m] elevation of Arabia shoreline
 const.sea.Meridiani.elev = 0;        % [m] elevation of Meridiani shoreline
 
 % Elevation to height above base of aquifer
-z_aq = @(elev) elev-(const.topo.high.elev-const.aq.dmax);
+z_aq = @(elev) elev-(const.aq.z_bot);
 
 % Convert shorelines to height above aquifer
 const.sea.Deuteronilus.z = z_aq(const.sea.Deuteronilus.elev); % [m] elevation of Deuteronilus shoreline
