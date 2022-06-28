@@ -15,7 +15,7 @@ const.aq.K_ref   = 1e-6; % [m/s] reference conductivity for K(phi) power-law
 const.aq.phi_s = 0.5; % [-] actual surface porosity
 
 %% Recharge
-r_m_yr = 5e-6;                 % recharge in m/Earth year
+r_m_yr = 1.2e-5;                 % recharge in m/Earth year
 % Rest of the constants
 const = mars_constants(const);
 r_m_s = r_m_yr/const.gen.yr2s; % recharge in m/s
@@ -31,8 +31,8 @@ k = K*const.gen.mu/(const.gen.gMars*const.gen.rho);
 %% Geometry
 % (this should be the only place where shoreline is set!)
 % topo_contours.dichotomy.z = const.sea.Deuteronilus.elev;
-% topo_contours.dichotomy.z = const.sea.Arabia.elev;
-topo_contours.dichotomy.z = const.sea.Meridiani.elev;
+topo_contours.dichotomy.z = const.sea.Arabia.elev;
+% topo_contours.dichotomy.z = const.sea.Meridiani.elev;
 
 load ../MarsTopoProcessing/Mars_topography.mat
 load ../MarsTopoProcessing/hellas_topo.mat
@@ -190,7 +190,7 @@ S = stream2(Xc,Yc,Vx_c,Vy_c,Xc(dof.active),Yc(dof.active));
 Ns = length(S);
 
 fprintf('Saving fields.\n')
-save('flow_field_no_crater.mat','Xc','Yc','Vx_c','Vy_c','dof','dof_f','X_f','Y_f','S','Ns','topo_contours','Grid','hD','hDm','hm','zm','fs')
+save('flow_field_no_crater.mat','Xc','Yc','Vx_c','Vy_c','dof','dof_f','X_f','Y_f','S','Ns','topo_contours','Grid','hD','hDm','hm','zm','fs','const')
 
 %%
 figure('name','Steady Dupuit-Boussinesq','position',[10 10 1.25*800 1.25*800 ])
