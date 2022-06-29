@@ -1,4 +1,4 @@
-% file: HomogeneousUniformRecharge2D.m
+% file: Mars_Steady_Dupuit_no_crater.m
 % author: Marc Hesse
 % date: Dec 28, 2021
 
